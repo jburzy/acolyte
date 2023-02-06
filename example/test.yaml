@@ -1,0 +1,21 @@
+global:
+  input_files: '/Users/jburzyns/Downloads/PhPy8_ZllH_H125_a55a55_4b_ctau100_mc20e_outTree.root'
+  output_file: 'test.root'
+
+regions:
+  - name: "CR1lep_el"
+    selection: "nel == 2"
+    weight: "weight_total * weight_leptonSF"
+    tree_name: "tree_SRZ"
+    histograms: 
+      - name: "jet_pt"
+        definition: !!python/tuple ["jetPt","",500,0,100]
+        expression: "jet_pt"
+  - name: "CR1lep_mu"
+    selection: "nmuon == 2"
+    weight: "weight_total * weight_leptonSF"
+    tree_name: "tree_SRZ"
+    histograms: 
+      - name: "jet_pt"
+        definition: !!python/tuple ["jetPt","",500,0,100]
+        expression: "jet_pt"
