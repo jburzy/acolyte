@@ -1,9 +1,7 @@
 import argparse
 import yaml
-import os
-import sys
 import glob
-import logging
+import util
 
 def get_args():
 
@@ -13,6 +11,11 @@ def get_args():
     parser.add_argument('--maxEvents',  type=int, default=-1)
     parser.add_argument('--firstEvent',  type=int, default=0)
     parser.add_argument('-d','--debug', action='store_true')
+    parser.add_argument('--numThread', type=int,
+                    default=-1, help="number of thread. if -1, we call \
+                    ROOT::DisableImplicitMT() else we call \
+                    ROOT.ROOT.EnableImplicitMT(numThread).")
+
     return parser.parse_args()
 
 def main():
@@ -20,8 +23,7 @@ def main():
     # parse the arguments
     args = get_args()
 
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
+    logger = util.get_logger()
 
     # parse the yaml config
     run_config = {}
@@ -34,7 +36,7 @@ def main():
     # get the input files
     input_files_pattern = run_config['global'].get('input_files','')
     if not input_files_pattern:
-        logging.error("No input files specified. Please check your config file.")
+        logger.error("No input files specified. Please check your config file.")
         raise Exception()
     
     # get input files
@@ -42,20 +44,25 @@ def main():
     input_files = [item for sublist in input_files for item in sublist]
 
     if not input_files:
-        logging.error(f"No input files found for pattern {input_files_pattern}. Please check your config file.")
+        logger.error(f"No input files found for pattern {input_files_pattern}. Please check your config file.")
         raise Exception()
 
-    logging.info("The following input files will be processed:")
+    logger.info("The following input files will be processed:")
     for f in input_files:
-        logging.info(f"\t{f}")
+        logger.info(f"\t{f}")
 
     # load ROOT and compiled libraries
     import ROOT
+    for lib in run_config['global'].get('libraries',[]):
+        ROOT.gSystem.Load(lib)
+
+    if args.numThread != -1:
+        ROOT.ROOT.EnableImplicitMT(args.numThread)
 
     output_file = ROOT.TFile(run_config["global"]["output_file"],"RECREATE")
     # build a TChain from the input
     for region in run_config['regions']:
-        logging.info(f"Processing region: {region['name']}")
+        logger.info(f"Processing region: {region['name']}")
         output_file.mkdir(region['name'])
         output_file.cd(region['name'])
         c = ROOT.TChain()
@@ -64,8 +71,11 @@ def main():
 
         df =  ROOT.RDataFrame(c)
 
+        for col in region.get('extra_columns',[]):
+            df = df.Define(col['name'],col['expression'])
+
         for hist in region['histograms']:
-            h = df.Filter(region['selection']).Histo1D(hist["definition"],hist["expression"])
+            h = df.Filter(region["selection"]).Histo1D(hist["definition"],hist["expression"],region["weight"])
         h.Write()
 
     output_file.Write()

@@ -5,15 +5,18 @@ global:
 regions:
   - name: "CR1lep_el"
     selection: "nel == 2"
-    weight: "weight_total * weight_leptonSF"
+    weight: "weight_total"
     tree_name: "tree_SRZ"
+    extra_columns:
+      - name: "good_jet_pt"
+        expression: "jet_pt[jet_pt > 50]"
     histograms: 
       - name: "jet_pt"
         definition: !!python/tuple ["jetPt","",500,0,100]
-        expression: "jet_pt"
+        expression: "good_jet_pt"
   - name: "CR1lep_mu"
     selection: "nmuon == 2"
-    weight: "weight_total * weight_leptonSF"
+    weight: "weight_total"
     tree_name: "tree_SRZ"
     histograms: 
       - name: "jet_pt"

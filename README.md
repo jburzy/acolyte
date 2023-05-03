@@ -1,2 +1,2 @@
 # acolyte
-A COLumnar analYsis Toolkit Example
+A COLumnar analYsis TemplatE
